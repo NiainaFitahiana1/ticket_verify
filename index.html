@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vérification Ticket</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body{
+      background:#f4f4f4;
+      padding:40px 20px;
+      color:#222;
+    }
+
+    .container{
+      max-width:700px;
+      margin:auto;
+      background:#fff;
+      border-radius:16px;
+      padding:30px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    h1{
+      margin-bottom:10px;
+      font-size:28px;
+    }
+
+    .subtitle{
+      color:#666;
+      margin-bottom:25px;
+    }
+
+    .ticket{
+      border:2px solid #16a34a;
+      border-radius:14px;
+      padding:25px;
+      background:#f0fdf4;
+    }
+
+    .invalid{
+      border-color:#dc2626;
+      background:#fef2f2;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:8px 14px;
+      border-radius:999px;
+      font-weight:bold;
+      margin-bottom:20px;
+    }
+
+    .badge-valid{
+      background:#16a34a;
+      color:white;
+    }
+
+    .badge-invalid{
+      background:#dc2626;
+      color:white;
+    }
+
+    .row{
+      margin-bottom:14px;
+    }
+
+    .label{
+      font-weight:bold;
+      color:#444;
+    }
+
+    .value{
+      margin-top:4px;
+      color:#111;
+    }
+
+    .loading{
+      text-align:center;
+      padding:40px;
+    }
+
+    .error{
+      color:#dc2626;
+      font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Vérification Ticket</h1>
+  <p class="subtitle">Scan QR / Vérification automatique</p>
+
+  <div id="content" class="loading">
+    Chargement...
+  </div>
+</div>
+
+<script>
+async function loadTicket() {
+
+  const content = document.getElementById("content");
+
+  // récupérer le token dans l'url
+  // ex: verify.html?t=TKT-U24T-HMMC-JF2T
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("t");
+
+  if (!token) {
+    content.innerHTML = `
+      <div class="ticket invalid">
+        <div class="badge badge-invalid">TOKEN MANQUANT</div>
+        <p>Aucun ticket fourni.</p>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+
+    // charger le data.json
+    const response = await fetch("./data.json");
+    const data = await response.json();
+
+    // chercher le ticket
+    const ticket = data.tickets.find(
+      item => item.token === token
+    );
+
+    // si introuvable
+    if (!ticket) {
+      content.innerHTML = `
+        <div class="ticket invalid">
+          <div class="badge badge-invalid">TICKET INVALIDE</div>
+          <p>Ce ticket n'existe pas.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // affichage ticket
+    content.innerHTML = `
+      <div class="ticket">
+
+        <div class="badge badge-valid">
+          ${ticket.statut.toUpperCase()}
+        </div>
+
+        <div class="row">
+          <div class="label">Numéro Ticket</div>
+          <div class="value">${ticket.numero}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Événement</div>
+          <div class="value">${ticket.event}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Date</div>
+          <div class="value">${ticket.date}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Heure</div>
+          <div class="value">${ticket.heure}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Lieu</div>
+          <div class="value">${ticket.lieu}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Catégorie</div>
+          <div class="value">${ticket.categorie}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Prix</div>
+          <div class="value">${ticket.prix} Ar</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Organisateur</div>
+          <div class="value">${ticket.organisateur}</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Notes</div>
+          <div class="value">${ticket.notes}</div>
+        </div>
+
+      </div>
+    `;
+
+  } catch (error) {
+
+    console.error(error);
+
+    content.innerHTML = `
+      <div class="ticket invalid">
+        <div class="badge badge-invalid">ERREUR</div>
+        <p>Impossible de charger le fichier data.json</p>
+      </div>
+    `;
+  }
+}
+
+loadTicket();
+</script>
+
+</body>
+</html>
