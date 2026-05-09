@@ -1,222 +1,464 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vérification Ticket</title>
+  <title>Vérification Ticket — STK-AFI</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            mustard: {
+              50:  '#fffbeb', 100: '#fef3c7', 200: '#fde68a',
+              300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b',
+              600: '#d97706', 700: '#b45309',
+            },
+          },
+          fontFamily: { rubik: ['Rubik', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+
+  <!-- Rubik -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family: Arial, sans-serif;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'Rubik', sans-serif; min-height: 100vh; }
+
+    /* ─── Background ─── */
+    body {
+      background-color: #f5f0e8;
+      position: relative;
     }
 
-    body{
-      background:#f4f4f4;
-      padding:40px 20px;
-      color:#222;
+    /* custom image layer */
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-position: center;
     }
 
-    .container{
-      max-width:700px;
-      margin:auto;
-      background:#fff;
-      border-radius:16px;
-      padding:30px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    /* warm-neutral wash over the image */
+    #bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        175deg,
+        rgba(255,251,235,.88) 0%,
+        rgba(254,243,199,.75) 45%,
+        rgba(245,240,230,.92) 100%
+      );
     }
 
-    h1{
-      margin-bottom:10px;
-      font-size:28px;
+    /* ─── Layout wrapper ─── */
+    #wrap {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center;
+      padding: 0 12px 36px;
     }
 
-    .subtitle{
-      color:#666;
-      margin-bottom:25px;
+    /* ─── Emblem ─── */
+    #emblem {
+      width: 100%; max-width: 460px;
+      text-align: center;
+      padding: 20px 16px 14px;
     }
 
-    .ticket{
-      border:2px solid #16a34a;
-      border-radius:14px;
-      padding:25px;
-      background:#f0fdf4;
+    #emblem .verse {
+      font-size: 12.5px; font-style: italic; font-weight: 400;
+      color: #57534e; line-height: 1.65; letter-spacing: .01em;
     }
 
-    .invalid{
-      border-color:#dc2626;
-      background:#fef2f2;
+    #emblem .ref {
+      margin-top: 5px;
+      font-size: 10.5px; font-weight: 700;
+      color: #d97706; letter-spacing: .14em; text-transform: uppercase;
     }
 
-    .badge{
-      display:inline-block;
-      padding:8px 14px;
-      border-radius:999px;
-      font-weight:bold;
-      margin-bottom:20px;
+    /* ─── Card ─── */
+    .card {
+      width: 100%; max-width: 440px;
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 16px 48px rgba(0,0,0,.11);
+      overflow: hidden;
+      animation: rise .45s cubic-bezier(.22,1,.36,1) both;
     }
 
-    .badge-valid{
-      background:#16a34a;
-      color:white;
+    @keyframes rise {
+      from { opacity:0; transform:translateY(22px); }
+      to   { opacity:1; transform:translateY(0); }
     }
 
-    .badge-invalid{
-      background:#dc2626;
-      color:white;
+    /* mustard accent bar */
+    .card-bar {
+      height: 5px;
+      background: linear-gradient(90deg, #b45309 0%, #fbbf24 50%, #b45309 100%);
     }
 
-    .row{
-      margin-bottom:14px;
+    .card-inner { padding: 20px 18px 24px; }
+
+    /* ─── Card header ─── */
+    .card-head { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+
+    .logo-box {
+      width: 50px; height: 50px; flex-shrink: 0;
+      border-radius: 13px;
+      border: 2px solid #fcd34d;
+      background: #fffbeb;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
     }
 
-    .label{
-      font-weight:bold;
-      color:#444;
+    .logo-box img { width:100%; height:100%; object-fit:cover; }
+
+    .logo-fb {                          /* fallback letter */
+      font-size: 22px; font-weight: 800; color: #d97706;
+      display: none;
     }
 
-    .value{
-      margin-top:4px;
-      color:#111;
+    .card-title { font-size: 17px; font-weight: 700; color: #1c1917; line-height: 1.2; }
+    .card-sub   { font-size: 10.5px; font-weight: 500; color: #a8a29e;
+                  letter-spacing: .07em; text-transform: uppercase; margin-top: 2px; }
+
+    /* ─── Divider ─── */
+    .div-line {
+      height: 1px; margin: 14px 0;
+      background: linear-gradient(90deg, transparent, #fde68a 40%, #fde68a 60%, transparent);
     }
 
-    .loading{
-      text-align:center;
-      padding:40px;
+    /* ─── Status badge ─── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 13px 5px 9px; border-radius: 999px;
+      font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
     }
 
-    .error{
-      color:#dc2626;
-      font-weight:bold;
+    .badge .material-symbols-outlined { font-size: 16px; font-variation-settings: 'FILL' 1, 'wght' 600; }
+    .badge.ok  { background:#ecfdf5; color:#059669; border:1.5px solid #6ee7b7; }
+    .badge.nok { background:#fef2f2; color:#dc2626; border:1.5px solid #fca5a5; }
+
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
     }
+    .dot.ok  { background:#10b981; animation: pulse 1.8s ease-in-out infinite; }
+    .dot.nok { background:#ef4444; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* ─── Info grid ─── */
+    .grid2 {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 9px;
+      margin-top: 4px;
+    }
+
+    .cell {
+      background: #fafaf9; border: 1px solid #f0ebe0;
+      border-radius: 12px; padding: 11px 12px;
+    }
+
+    .cell.full { grid-column: 1 / -1; }
+
+    .cell-label {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 9.5px; font-weight: 700; color: #a8a29e;
+      text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: 5px;
+    }
+
+    .cell-label .material-symbols-outlined {
+      font-size: 13px; color: #d97706;
+      font-variation-settings: 'FILL' 0, 'wght' 500;
+    }
+
+    .cell-val {
+      font-size: 13px; font-weight: 600; color: #1c1917; line-height: 1.35;
+    }
+
+    /* ─── Token strip ─── */
+    .tok-strip {
+      display: flex; align-items: center; gap: 8px;
+      background: #fffbeb; border: 1px dashed #fcd34d;
+      border-radius: 10px; padding: 9px 13px; margin-top: 16px;
+    }
+
+    .tok-strip .material-symbols-outlined {
+      font-size: 17px; color: #d97706; flex-shrink: 0;
+      font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+
+    .tok-strip span.t {
+      font-size: 11.5px; font-weight: 500; color: #78716c;
+      letter-spacing: .04em; word-break: break-all;
+    }
+
+    /* ─── Loading ─── */
+    .loading {
+      display: flex; flex-direction: column;
+      align-items: center; padding: 48px 0; gap: 14px;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3.5px solid #fde68a; border-top-color: #d97706;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading p { font-size: 13px; color: #a3a3a3; font-weight: 500; }
+
+    /* ─── Error ─── */
+    .err {
+      display: flex; flex-direction: column;
+      align-items: center; text-align: center; padding: 44px 16px; gap: 12px;
+    }
+
+    .err-icon {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: #fef2f2; border: 2px solid #fca5a5;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .err-icon .material-symbols-outlined {
+      font-size: 27px; color: #ef4444;
+      font-variation-settings: 'FILL' 0, 'wght' 500;
+    }
+
+    .err-title { font-size: 12px; font-weight: 700; color: #dc2626;
+                 text-transform: uppercase; letter-spacing: .06em; }
+    .err-msg   { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    /* ─── Footer ─── */
+    footer {
+      width: 100%; max-width: 440px;
+      margin-top: 18px;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(253,230,138,.65);
+      border-radius: 18px;
+      padding: 15px 16px 13px;
+    }
+
+    .ft-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+    .ft-brand { display: flex; align-items: center; gap: 10px; }
+
+    .ft-icon-box {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: #d97706;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ft-icon-box .material-symbols-outlined {
+      font-size: 19px; color: #fff;
+      font-variation-settings: 'FILL' 1, 'wght' 500;
+    }
+
+    .ft-name    { font-size: 12.5px; font-weight: 700; color: #1c1917; line-height: 1.15; }
+    .ft-sub     { font-size: 9.5px;  font-weight: 500; color: #a3a3a3;
+                  text-transform: uppercase; letter-spacing: .07em; margin-top: 1px; }
+
+    /* Facebook button */
+    .fb-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1877f2; color: black;
+      padding: 7px 12px; border-radius: 999px;
+      font-size: 11.5px; font-weight: 600;
+      text-decoration: none;
+      transition: background .2s, transform .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .fb-btn:hover { background: #1461c5; transform: translateY(-1px); }
+
+    .fb-btn svg { width: 15px; height: 15px; fill: #fff; flex-shrink: 0; }
+
+    .ft-div {
+      height: 1px; margin: 11px 0;
+      background: linear-gradient(90deg, transparent, #fde68a 40%, #fde68a 60%, transparent);
+    }
+
+    .ft-copy {
+      text-align: center; font-size: 10px;
+      color: #a3a3a3; font-weight: 400;
+    }
+
+    .ft-copy b { color: #d97706; font-weight: 700; }
   </style>
 </head>
+
 <body>
 
-<div class="container">
-  <h1>Vérification Ticket</h1>
-  <p class="subtitle">Scan QR / Vérification automatique</p>
+  <div id="bg"></div>
 
-  <div id="content" class="loading">
-    Chargement...
-  </div>
-</div>
+  <div id="wrap">
 
-<script>
-async function loadTicket() {
+    <!-- ══ Emblem ══ -->
+    <div id="emblem">
+      <p class="verse">« Ny famindrampon'i Jehovah no hohiraiko mandrakizay »</p>
+      <p class="ref">Salamo 89 : 1a</p>
+    </div>
 
-  const content = document.getElementById("content");
+    <!-- ══ Card ══ -->
+    <div class="card">
+      <div class="card-bar"></div>
+      <div class="card-inner">
 
-  // récupérer le token dans l'url
-  // ex: verify.html?t=TKT-U24T-HMMC-JF2T
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("t");
-
-  if (!token) {
-    content.innerHTML = `
-      <div class="ticket invalid">
-        <div class="badge badge-invalid">TOKEN MANQUANT</div>
-        <p>Aucun ticket fourni.</p>
-      </div>
-    `;
-    return;
-  }
-
-  try {
-
-    // charger le data.json
-    const response = await fetch("./data.json");
-    const data = await response.json();
-
-    // chercher le ticket
-    const ticket = data.tickets.find(
-      item => item.token === token
-    );
-
-    // si introuvable
-    if (!ticket) {
-      content.innerHTML = `
-        <div class="ticket invalid">
-          <div class="badge badge-invalid">TICKET INVALIDE</div>
-          <p>Ce ticket n'existe pas.</p>
+        <!-- Header -->
+        <div class="card-head">
+          <div class="logo-box">
+            <img src="logo.png" alt="Logo"
+                 onerror="this.style.display='none'; document.querySelector('.logo-fb').style.display='block'">
+            <span class="logo-fb">S</span>
+          </div>
+          <div>
+            <div class="card-title">Vérification Ticket</div>
+            <div class="card-sub">Contrôle d'accès · Scan QR</div>
+          </div>
         </div>
-      `;
+
+        <div class="div-line"></div>
+
+        <!-- Dynamic -->
+        <div id="content">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Chargement du ticket…</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Footer ══ -->
+    <footer>
+      <div class="ft-top">
+
+        <!-- Brand -->
+        <div class="ft-brand">
+          <div class="ft-icon-box">
+            <span class="material-symbols-outlined">confirmation_number</span>
+          </div>
+          <div>
+            <div class="ft-name">STK AFI TICKETING</div>
+            <div class="ft-sub">Billetterie événementielle</div>
+          </div>
+        </div>
+
+        <!-- Facebook -->
+        <a href="https://www.facebook.com/stk.akon.ny.fandresena.iavoloha" target="_blank" rel="noopener" class="fb-btn">
+          <!-- Facebook SVG brand icon -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+          </svg>
+        </a>
+
+      </div>
+
+      <div class="ft-div"></div>
+
+      <div class="ft-copy">
+        © 2026 <b>STK AFI</b> · Tous droits réservés 
+    </footer>
+
+  </div><!-- /wrap -->
+
+
+  <script>
+  async function loadTicket() {
+    const el     = document.getElementById("content");
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get("t");
+
+    if (!token) {
+      showErr(el, "Token manquant", "Aucun ticket fourni dans l'URL.", null);
       return;
     }
 
-    // affichage ticket
-    content.innerHTML = `
-      <div class="ticket">
+    try {
+      const r    = await fetch("./data.json");
+      const data = await r.json();
+      const tk   = data.tickets.find(x => x.token === token);
 
-        <div class="badge badge-valid">
-          ${ticket.statut.toUpperCase()}
+      if (!tk) {
+        showErr(el, "Ticket invalide", "Ce ticket n'existe pas dans notre système.", token);
+        return;
+      }
+
+      const ok = tk.statut?.toLowerCase() === "valide";
+
+      el.innerHTML = `
+        <div class="badge ${ok ? 'ok' : 'nok'}">
+          <div class="dot ${ok ? 'ok' : 'nok'}"></div>
+          <span class="material-symbols-outlined">${ok ? 'verified' : 'cancel'}</span>
+          ${tk.statut.toUpperCase()}
         </div>
 
-        <div class="row">
-          <div class="label">Numéro Ticket</div>
-          <div class="value">${ticket.numero}</div>
+        <div class="grid2">
+          ${row('event_note',    'Événement',    tk.event,        true)}
+          ${row('tag',           'Numéro',        tk.numero)}
+          ${row('calendar_month','Date',          tk.date)}
+          ${row('schedule',      'Heure',         tk.heure)}
+          ${row('sell',          'Prix',          tk.prix + ' Ar')}
+          ${row('category',      'Catégorie',     tk.categorie)}
+          ${row('location_on',   'Lieu',          tk.lieu,        true)}
+          ${row('person',        'Organisateur',  tk.organisateur,true)}
+          ${tk.notes ? row('sticky_note_2','Notes',tk.notes,true) : ''}
         </div>
 
-        <div class="row">
-          <div class="label">Événement</div>
-          <div class="value">${ticket.event}</div>
+        <div class="tok-strip">
+          <span class="material-symbols-outlined">qr_code_2</span>
+          <span class="t">${token}</span>
         </div>
-
-        <div class="row">
-          <div class="label">Date</div>
-          <div class="value">${ticket.date}</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Heure</div>
-          <div class="value">${ticket.heure}</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Lieu</div>
-          <div class="value">${ticket.lieu}</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Catégorie</div>
-          <div class="value">${ticket.categorie}</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Prix</div>
-          <div class="value">${ticket.prix} Ar</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Organisateur</div>
-          <div class="value">${ticket.organisateur}</div>
-        </div>
-
-        <div class="row">
-          <div class="label">Notes</div>
-          <div class="value">${ticket.notes}</div>
-        </div>
-
-      </div>
-    `;
-
-  } catch (error) {
-
-    console.error(error);
-
-    content.innerHTML = `
-      <div class="ticket invalid">
-        <div class="badge badge-invalid">ERREUR</div>
-        <p>Impossible de charger le fichier data.json</p>
-      </div>
-    `;
+      `;
+    } catch(e) {
+      console.error(e);
+      showErr(el, "Erreur système", "Impossible de charger data.json.", token);
+    }
   }
-}
 
-loadTicket();
-</script>
+  function row(icon, label, val, full = false) {
+    return `<div class="cell${full ? ' full' : ''}">
+      <div class="cell-label">
+        <span class="material-symbols-outlined">${icon}</span>${label}
+      </div>
+      <div class="cell-val">${val ?? '—'}</div>
+    </div>`;
+  }
+
+  function showErr(el, title, msg, token) {
+    el.innerHTML = `
+      <div class="err">
+        <div class="err-icon">
+          <span class="material-symbols-outlined">error</span>
+        </div>
+        <div>
+          <p class="err-title">${title}</p>
+          <p class="err-msg">${msg}</p>
+        </div>
+        ${token ? `<div class="tok-strip"><span class="material-symbols-outlined">qr_code_2</span><span class="t">${token}</span></div>` : ''}
+      </div>`;
+  }
+
+  loadTicket();
+  </script>
 
 </body>
 </html>
