@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Ticket Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0a0a;
+      --surface:  #111111;
+      --surface2: #191919;
+      --border:   rgba(255,255,255,0.08);
+      --border2:  rgba(255,255,255,0.14);
+      --text:     #f0f0ed;
+      --muted:    #888884;
+      --hint:     #555552;
+      --green:    #1D9E75;
+      --green-bg: rgba(29,158,117,0.12);
+      --green-border: rgba(29,158,117,0.35);
+      --red:      #E24B4A;
+      --red-bg:   rgba(226,75,74,0.12);
+      --red-border: rgba(226,75,74,0.35);
+      --amber:    #EF9F27;
+      --amber-bg: rgba(239,159,39,0.12);
+      --amber-border: rgba(239,159,39,0.35);
+      --radius:   12px;
+      --radius-lg: 16px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    .wrap { max-width: 480px; margin: 0 auto; }
+
+    /* header */
+    .header { margin-bottom: 24px; }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -.01em;
+      color: var(--text);
+    }
+    .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* scanner box */
+    .scanner-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    #reader { width: 100% !important; border: none !important; background: #000; }
+    #reader * { border: none !important; }
+    #html5-qrcode-button-camera-start,
+    #html5-qrcode-button-camera-stop,
+    #html5-qrcode-button-file-selection,
+    #html5-qrcode-anchor-scan-type-change {
+      font-family: 'DM Sans', sans-serif !important;
+      background: var(--surface2) !important;
+      color: var(--text) !important;
+      border: 0.5px solid var(--border2) !important;
+      border-radius: 8px !important;
+      padding: 8px 16px !important;
+      font-size: 13px !important;
+      cursor: pointer !important;
+      margin: 4px !important;
+    }
+    #html5-qrcode-select-camera {
+      font-family: 'DM Sans', sans-serif !important;
+      background: var(--surface2) !important;
+      color: var(--text) !important;
+      border: 0.5px solid var(--border2) !important;
+      border-radius: 8px !important;
+      padding: 6px 10px !important;
+      font-size: 13px !important;
+    }
+    #reader__scan_region { background: #000 !important; }
+    #reader__dashboard { background: var(--surface) !important; padding: 12px !important; }
+    #reader__dashboard_section_swaplink { color: var(--muted) !important; font-size: 12px !important; }
+
+    /* result card */
+    .result-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      display: none;
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-card.valid { border-color: var(--green-border); }
+    .result-card.invalid-card { border-color: var(--red-border); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      margin-bottom: 14px;
+    }
+    .badge.ok { background: var(--green-bg); color: var(--green); }
+    .badge.err { background: var(--red-bg); color: var(--red); }
+    .badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+    .ticket-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 18px;
+      word-break: break-all;
+    }
+
+    .prev-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .prev-status span {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .prev-status span.PASSER  { background: var(--green-bg);  color: var(--green); }
+    .prev-status span.REFUSER { background: var(--red-bg);    color: var(--red); }
+    .prev-status span.ATTENTE { background: var(--amber-bg);  color: var(--amber); }
+    .prev-status span.none    { background: var(--surface2);  color: var(--muted); }
+
+    .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .btn {
+      padding: 11px 8px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      border: 0.5px solid transparent;
+      transition: opacity .15s, transform .1s;
+      text-align: center;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:hover { opacity: .85; }
+    .btn.passer  { background: var(--green-bg);  color: var(--green);  border-color: var(--green-border); }
+    .btn.refuser { background: var(--red-bg);    color: var(--red);    border-color: var(--red-border); }
+    .btn.attente { background: var(--amber-bg);  color: var(--amber);  border-color: var(--amber-border); }
+
+    .status-confirm {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-confirm .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink:0;
+    }
+    .status-confirm.PASSER  .dot { background: var(--green); }
+    .status-confirm.REFUSER .dot { background: var(--red); }
+    .status-confirm.ATTENTE .dot { background: var(--amber); }
+
+    /* log section */
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+    .log-header h2 { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing:.05em; text-transform:uppercase; }
+    .log-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .icon-btn:hover { color: var(--text); border-color: var(--border2); }
+    .icon-btn svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+    .log-empty { font-size: 13px; color: var(--hint); text-align: center; padding: 24px 0; }
+
+    .log-list { display: flex; flex-direction: column; gap: 6px; }
+    .log-item {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .log-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .log-dot.PASSER  { background: var(--green); }
+    .log-dot.REFUSER { background: var(--red); }
+    .log-dot.ATTENTE { background: var(--amber); }
+    .log-code { font-family:'DM Mono',monospace; font-size:13px; color:var(--text); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .log-meta { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+    .log-status { font-size:11px; font-weight:500; font-family:'DM Mono',monospace; }
+    .log-status.PASSER  { color: var(--green); }
+    .log-status.REFUSER { color: var(--red); }
+    .log-status.ATTENTE { color: var(--amber); }
+    .log-time { font-size:11px; color:var(--hint); }
+
+    /* counter chips */
+    .counters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .counter-chip {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .counter-chip .n { font-size: 20px; font-weight: 500; }
+    .counter-chip .l { font-size: 11px; color: var(--muted); margin-top: 2px; font-family:'DM Mono',monospace; }
+    .counter-chip.p .n { color: var(--green); }
+    .counter-chip.r .n { color: var(--red); }
+    .counter-chip.a .n { color: var(--amber); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>Scanner de tickets</h1>
+    <p>Scannez un QR code pour valider ou gérer l'entrée</p>
+  </div>
+
+  <div class="scanner-card">
+    <div id="reader"></div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="badge ok" id="validBadge">TICKET VALIDE</div>
+    <div class="badge err" id="invalidBadge" style="display:none">QR INVALIDE</div>
+    <div class="ticket-code" id="ticketCode"></div>
+    <div class="prev-status" id="prevStatus"></div>
+    <div class="btns" id="actionBtns">
+      <button class="btn passer"  onclick="setStatus('PASSER')">Passer</button>
+      <button class="btn refuser" onclick="setStatus('REFUSER')">Refuser</button>
+      <button class="btn attente" onclick="setStatus('ATTENTE')">Attente</button>
+    </div>
+    <div class="status-confirm" id="statusConfirm"></div>
+  </div>
+
+  <div class="log-header">
+    <h2>Historique</h2>
+    <div class="log-actions">
+      <button class="icon-btn" onclick="exportJSON()" title="Exporter data.json">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter data.json
+      </button>
+      <button class="icon-btn" onclick="clearLog()" title="Effacer">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="counters">
+    <div class="counter-chip p"><div class="n" id="cntP">0</div><div class="l">PASSER</div></div>
+    <div class="counter-chip r"><div class="n" id="cntR">0</div><div class="l">REFUSER</div></div>
+    <div class="counter-chip a"><div class="n" id="cntA">0</div><div class="l">ATTENTE</div></div>
+  </div>
+
+  <div id="logList" class="log-list"></div>
+  <div id="logEmpty" class="log-empty">Aucun ticket scanné</div>
+
+</div>
+<script>
+const VALID_TICKETS = [
+  "TKT-W9FF-CYQY-CDYH",
+  "TKT-AAAA-BBBB-CCCC",
+  "VIP-123456"
+];
+
+const STORAGE_KEY = "ticket_data";
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let data = loadData();
+let lastScanned = "";
+
+function extractTicket(qrText) {
+  try { return new URL(qrText).searchParams.get("t") || qrText; }
+  catch { return qrText; }
+}
+
+function fmt(isoStr) {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" });
+}
+
+function renderLog() {
+  const list = document.getElementById("logList");
+  const empty = document.getElementById("logEmpty");
+  const entries = Object.values(data).filter(e => e.status).sort((a,b) => new Date(b.time) - new Date(a.time));
+
+  document.getElementById("cntP").textContent = entries.filter(e=>e.status==="PASSER").length;
+  document.getElementById("cntR").textContent = entries.filter(e=>e.status==="REFUSER").length;
+  document.getElementById("cntA").textContent = entries.filter(e=>e.status==="ATTENTE").length;
+
+  if (!entries.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+  list.innerHTML = entries.map(e => `
+    <div class="log-item">
+      <div class="log-dot ${e.status}"></div>
+      <div class="log-code">${e.ticket}</div>
+      <div class="log-meta">
+        <div class="log-status ${e.status}">${e.status}</div>
+        <div class="log-time">${fmt(e.time)}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function onScanSuccess(decodedText) {
+  const ticket = extractTicket(decodedText);
+  if (ticket === lastScanned) return;
+  lastScanned = ticket;
+
+  const card = document.getElementById("resultCard");
+  const validBadge = document.getElementById("validBadge");
+  const invalidBadge = document.getElementById("invalidBadge");
+  const actionBtns = document.getElementById("actionBtns");
+  const prevStatus = document.getElementById("prevStatus");
+  const statusConfirm = document.getElementById("statusConfirm");
+
+  card.style.display = "block";
+  document.getElementById("ticketCode").textContent = ticket;
+  statusConfirm.textContent = "";
+  statusConfirm.className = "status-confirm";
+
+  const isValid = VALID_TICKETS.includes(ticket);
+  card.className = "result-card " + (isValid ? "valid" : "invalid-card");
+  validBadge.style.display = isValid ? "inline-flex" : "none";
+  invalidBadge.style.display = isValid ? "none" : "inline-flex";
+  actionBtns.style.display = isValid ? "grid" : "none";
+
+  const existing = data[ticket];
+  if (existing && existing.status) {
+    prevStatus.innerHTML = `Statut précédent&nbsp;<span class="${existing.status}">${existing.status}</span>`;
+  } else {
+    prevStatus.innerHTML = isValid ? `<span class="none">Non scanné</span>` : "";
+  }
+
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function setStatus(status) {
+  if (!lastScanned) return;
+  const entry = {
+    ticket: lastScanned,
+    status: status,
+    time: new Date().toISOString()
+  };
+  data[lastScanned] = entry;
+  saveData(data);
+
+  const sc = document.getElementById("statusConfirm");
+  const labels = { PASSER:"Passé", REFUSER:"Refusé", ATTENTE:"En attente" };
+  sc.className = "status-confirm " + status;
+  sc.innerHTML = `<div class="dot"></div><span>Statut enregistré : <strong>${labels[status]}</strong></span>`;
+
+  document.getElementById("prevStatus").innerHTML =
+    `Statut précédent&nbsp;<span class="${status}">${status}</span>`;
+
+  renderLog();
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "data.json";
+  a.click();
+}
+
+function clearLog() {
+  if (!confirm("Effacer tout l'historique ?")) return;
+  data = {};
+  saveData(data);
+  lastScanned = "";
+  document.getElementById("resultCard").style.display = "none";
+  renderLog();
+}
+
+const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 240 });
+scanner.render(onScanSuccess);
+renderLog();
+</script>
+</body>
+</html>
