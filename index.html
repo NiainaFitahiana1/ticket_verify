@@ -109,15 +109,15 @@
 
       <div class="p-8">
 
-        <div class="flex items-center gap-4 mb-8">
+        <!-- <div class="flex items-center gap-4 mb-8">
           <div class="w-11 h-11 rounded-2xl bg-primary-container flex items-center justify-center">
             <span class="material-symbols-outlined text-3xl text-on-primary">confirmation_number</span>
           </div>
           <div>
-            <!-- <h2 class="text-2xl font-semibold text-primary">Vérification Billet</h2> -->
+            <h2 class="text-2xl font-semibold text-primary">Vérification Billet</h2>
             <p class="text-on-surface-variant text-sm">VERIFICATION</p>
           </div>
-        </div>
+        </div> -->
 
         <div id="content" class="min-h-[280px]">
           <div class="loading flex flex-col items-center justify-center py-12">
@@ -188,7 +188,11 @@
         <div class="space-y-5">
           ${createRow('event_note', 'Événement', tk.event)}
           ${createRow('tag', 'Numéro de billet', tk.numero)}
-          ${createRow('calendar_month', 'Date', tk.date)}
+          ${createRow(
+            'calendar_month',
+            'Date',
+            new Date(tk.date).toLocaleDateString('fr-FR')
+          )}
           ${createRow('schedule', 'Heure', tk.heure)}
           ${createRow('sell', 'Prix', tk.prix + ' Ar')}
           ${createRow('category', 'Catégorie', tk.categorie)}
