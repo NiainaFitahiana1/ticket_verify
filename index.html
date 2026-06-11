@@ -52,8 +52,12 @@
     }
 
     .card {
-      border-radius: 0 !important;
-      box-shadow: 0 10px 30px -10px rgb(8 21 46 / 0.15);
+      border-radius: 2px !important;
+      box-shadow: 0 8px 18px -12px rgb(8 21 46 / 0.18);
+    }
+
+    .soft-panel {
+      border-radius: 2px;
     }
 
     /* Style Facebook Link */
@@ -72,11 +76,11 @@
   </style>
 </head>
 
-<body class="bg-background text-on-surface flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-background text-on-surface flex min-h-screen flex-col items-center justify-center p-3 sm:p-4">
 
   <!-- Grand Hero -->
-  <div class="hero w-full max-w-md overflow-hidden shadow-xl mb-6">
-    <div class="px-6 py-10 text-center text-white">
+  <div class="hero mb-4 w-full max-w-sm overflow-hidden shadow-xl sm:max-w-md sm:mb-6">
+    <div class="px-4 py-6 text-center text-white sm:px-6 sm:py-10">
       <img src="/image.png" alt="" class="h-24 mx-auto mb-3">
       <h1 class="text-2xl font-bold leading-tight tracking-tight">
         SAMPANA TANORA KRISTIANINA<br>
@@ -100,14 +104,14 @@
     </div>
   </div>
 
-  <div class="w-full max-w-md">
+  <div class="w-full max-w-sm sm:max-w-md">
 
     <!-- Main Card -->
-    <div class="card bg-surface-container-lowest border border-outline-variant">
+    <div class="card border border-outline-variant/70 bg-surface-container-lowest">
 
       <div class="h-1.5 bg-gradient-to-r from-primary via-secondary-container to-secondary"></div>
 
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- <div class="flex items-center gap-4 mb-8">
           <div class="w-11 h-11 rounded-2xl bg-primary-container flex items-center justify-center">
@@ -119,7 +123,7 @@
           </div>
         </div> -->
 
-        <div id="content" class="min-h-[280px]">
+        <div id="content" class="min-h-auto">
           <div class="loading flex flex-col items-center justify-center py-12">
             <div class="w-10 h-10 border-4 border-surface-container border-t-secondary-container rounded-full animate-spin"></div>
             <p class="mt-6 text-on-surface-variant text-sm font-medium">Chargement du ticket...</p>
@@ -151,6 +155,24 @@
 
     </div>
 
+    <div id="detailsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-3 sm:p-4" aria-hidden="true">
+      <div class="w-full max-w-sm rounded-[2px] border border-outline-variant/70 bg-surface-container-lowest shadow-2xl overflow-hidden sm:max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-start justify-between gap-4 border-b border-outline-variant/70 px-4 py-3 sm:px-5 sm:py-4 shrink-0">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.35em] text-on-surface-variant">Détails du ticket</p>
+            <h3 id="modalTitle" class="mt-1 text-xl font-semibold text-primary">Détails du billet</h3>
+          </div>
+          <button id="closeDetailsModal" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-[2px] border border-outline-variant/70 bg-surface-container-lowest text-on-surface hover:bg-surface-container sm:h-10 sm:w-10" aria-label="Fermer la modale">
+            <span class="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+        <div class="p-4 sm:p-5 overflow-y-auto">
+          <div id="detailsGrid" class="grid gap-3 grid-cols-1 sm:grid-cols-2"></div>
+          <!-- <p class="mt-4 text-xs text-on-surface-variant">Les informations détaillées sont visibles ici, sans exposer le numéro du billet.</p> -->
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -178,36 +200,31 @@
       const isValid = tk.statut?.toLowerCase() === "valide";
 
       el.innerHTML = `
-        <div class="flex items-center gap-3 px-5 py-3.5 rounded-2xl mb-6 ${isValid 
-          ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' 
-          : 'bg-red-50 border border-red-200 text-red-700'}">
-          <span class="material-symbols-outlined text-2xl">${isValid ? 'verified' : 'cancel'}</span>
-          <span class="font-semibold tracking-wider uppercase text-sm">${tk.statut}</span>
-        </div>
-
-        <div class="space-y-5">
-          ${createRow('event_note', 'Événement', tk.event)}
-          ${createRow('tag', 'Numéro de billet', tk.numero)}
-          ${createRow(
-            'calendar_month',
-            'Date',
-            new Date(tk.date).toLocaleDateString('fr-FR')
-          )}
-          ${createRow('schedule', 'Heure', tk.heure)}
-          ${createRow('sell', 'Prix', tk.prix + ' Ar')}
-          ${createRow('category', 'Catégorie', tk.categorie)}
-          ${createRow('location_on', 'Lieu', tk.lieu)}
-          ${createRow('person', 'Organisateur', tk.organisateur)}
-          ${tk.notes ? createRow('sticky_note_2', 'Notes', tk.notes) : ''}
-        </div>
-
-        <div class="mt-8 p-4 bg-surface-container rounded-2xl border border-dashed border-secondary-container">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-secondary-container text-2xl">qr_code_2</span>
-            <div class="text-xs font-mono text-on-surface-variant break-all">${token}</div>
+        <div class="mb-4 rounded-[2px] border border-outline-variant/70 bg-surface-container-lowest p-3 shadow-sm sm:p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl text-secondary-container">${isValid ? 'verified' : 'cancel'}</span>
+                <span class="rounded-[2px] border border-current/20 bg-current/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] ${isValid ? 'text-emerald-700' : 'text-red-700'}">${tk.statut}</span>
+              </div>
+              <p class="text-xs text-on-surface-variant">État du billet</p>
+            </div>
+            <button id="openDetailsBtn" type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[2px] border border-outline-variant/70 bg-surface-container text-on-surface hover:bg-surface-container-low" aria-label="Afficher les détails du ticket">
+              <span class="material-symbols-outlined text-xl">more_horiz</span>
+            </button>
           </div>
         </div>
+
+        <div class="rounded-[2px] border border-outline-variant/70 bg-surface-container p-3 sm:p-4">
+          <p class="text-[11px] uppercase tracking-[0.35em] text-on-surface-variant">Token</p>
+          <p class="mt-2 break-all font-mono text-xs text-on-surface sm:text-sm">${token}</p>
+        </div>
       `;
+
+      const openBtn = document.getElementById('openDetailsBtn');
+      if (openBtn) {
+        openBtn.addEventListener('click', () => openDetailsModal(tk));
+      }
     } catch (e) {
       console.error(e);
       showErr(el, "Erreur de chargement", "Impossible de récupérer les informations du ticket.");
@@ -226,6 +243,54 @@
     `;
   }
 
+  function openDetailsModal(ticket) {
+    const modal = document.getElementById('detailsModal');
+    const title = document.getElementById('modalTitle');
+    const grid = document.getElementById('detailsGrid');
+
+    if (!modal || !title || !grid) return;
+
+    title.textContent = ticket.event || 'Détails du billet';
+
+    const details = [
+      ['event_note', 'Événement', ticket.event],
+      ['calendar_month', 'Date', new Date(ticket.date).toLocaleDateString('fr-FR')],
+      ['schedule', 'Heure', ticket.heure],
+      ['sell', 'Prix', ticket.prix + ' Ar'],
+      ['category', 'Catégorie', ticket.categorie],
+      ['location_on', 'Lieu', ticket.lieu],
+      ['person', 'Organisateur', ticket.organisateur],
+      ['sticky_note_2', 'Notes', ticket.notes || 'Aucune note'],
+    ];
+
+    grid.innerHTML = details
+      .map(([icon, label, value]) => `
+        <article class="border-b border-outline-variant/70 bg-surface-container-lowest p-3 shadow-md sm:p-4">
+          <div class="flex items-center gap-2 text-secondary">
+            <span class="material-symbols-outlined text-xl">${icon}</span>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-on-surface-variant">${label}</p>
+          </div>
+          <p class="mt-3 text-sm font-semibold text-on-surface">${value ?? '—'}</p>
+        </article>
+      `)
+      .join('');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeDetailsModal() {
+    const modal = document.getElementById('detailsModal');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('overflow-hidden');
+  }
+
   function showErr(el, title, msg) {
     el.innerHTML = `
       <div class="text-center py-12">
@@ -237,6 +302,27 @@
       </div>
     `;
   }
+
+  const modal = document.getElementById('detailsModal');
+  const closeBtn = document.getElementById('closeDetailsModal');
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeDetailsModal);
+  }
+
+  if (modal) {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeDetailsModal();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeDetailsModal();
+    }
+  });
 
   loadTicket();
   </script>
