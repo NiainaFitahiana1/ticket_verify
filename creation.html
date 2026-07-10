@@ -275,7 +275,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
             <label>Nombre de tickets</label>
             <input type="number" id="ticketCount" value="60" min="1" max="99999">
           </div>
-          <div class="stats-row">
+          <button class="append-btn" id="appendBtn" type="button" disabled>
+            <i class="ti ti-plus"></i>Ajouter plus
+          </button>
+          <div class="tip-row" style="margin-top:.55rem">
+            <span class="tip"><i class="ti ti-database"></i>Si data.json existe, la numérotation reprend au dernier ID.</span>
+          </div>
+          <div class="stats-row" style="margin-top:.9rem">
             <div class="stat-box"><div class="stat-val" id="statTickets">60</div><div class="stat-lbl">tickets</div></div>
             <div class="stat-box"><div class="stat-val" id="statPages">12</div><div class="stat-lbl">pages A4</div></div>
           </div>
@@ -300,6 +306,18 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
           <div class="field"><label>Organisateur</label><input type="text" id="evtOrga" value="Association Lumière"></div>
           <div class="field"><label>Notes / Conditions</label>
             <textarea id="evtNotes">Fankalazàna faha 10 taonan'ny STK-AFI</textarea>
+          </div>
+
+          <div class="sep"></div>
+          <div class="section-label"><i class="ti ti-file-compress"></i>Optimisation PDF</div>
+          <div class="field"><label>Qualité de compression des images</label>
+            <div class="range-row">
+              <input type="range" id="imgQuality" min="30" max="95" value="70" step="5">
+              <span class="range-val" id="imgQualityVal">70%</span>
+            </div>
+          </div>
+          <div style="background:var(--g50);border:1px solid var(--g100);border-radius:var(--r8);padding:.7rem;font-size:11.5px;color:var(--ts);line-height:1.6;margin-top:.5rem">
+            <strong>💡 Conseil :</strong> Baissez à 50-60% pour réduire drastiquement la taille (150 MB → ~40 MB pour 600 tickets)
           </div>
 
           <div class="sep"></div>
@@ -672,6 +690,7 @@ function updateStats() {
 $('qrColorDark').addEventListener('input', () => $('qrColorDarkHex').textContent = $('qrColorDark').value);
 $('qrColorLight').addEventListener('input', () => $('qrColorLightHex').textContent = $('qrColorLight').value);
 $('ticketCount').addEventListener('input', updateStats);
+$('imgQuality').addEventListener('input', () => $('imgQualityVal').textContent = $('imgQuality').value + '%');
 ['qrSite','numPrefix'].forEach(id => $(id).addEventListener('input', () => {
   const site = $('qrSite').value.trim().replace(/\/+$/,'') || 'https://ticket-verify.vercel.app/';
   $('tokenSample').textContent = `TKT-XXXX-XXXX-XXXX → ${site}?t=TKT-XXXX-XXXX-XXXX`;
@@ -721,6 +740,21 @@ async function makeQRDataURL(text, szPx, colorDark, colorLight) {
   });
 }
 
+// ── IMAGE COMPRESSION ──
+function compressImage(dataURL, quality = 0.75) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataURL;
+  });
+}
+
 // ── EXPORT JSON ──
 function downloadJSON(store) {
   const out = {
@@ -735,6 +769,75 @@ function downloadJSON(store) {
   a.href = URL.createObjectURL(blob); a.download = 'data.json'; a.click();
   URL.revokeObjectURL(a.href);
 }
+
+function persistTicketsLocally(store) {
+  const payload = {
+    generated_at: new Date().toISOString(),
+    event: $('evtNom').value,
+    site_verification: $('qrSite').value,
+    total: store.length,
+    tickets: store
+  };
+
+  try {
+    localStorage.setItem('ticketStoreData', JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Impossible de sauvegarder localement:', error);
+  }
+
+  return payload;
+}
+
+function parseNumericalId(value) {
+  if (value === null || value === undefined) return null;
+  const parsed = parseInt(String(value).replace(/\D/g, ''), 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getNextTicketNumber() {
+  const ids = ticketStore
+    .map(t => parseNumericalId(t.numero ?? t.label ?? ''))
+    .filter(id => id !== null);
+  if (!ids.length) return 1;
+  return Math.max(...ids) + 1;
+}
+
+async function loadExistingData() {
+  try {
+    const response = await fetch('./data.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Aucune donnée locale');
+    const parsed = await response.json();
+    if (parsed && Array.isArray(parsed.tickets)) {
+      ticketStore = parsed.tickets;
+      updateSummary();
+      renderTable();
+      $('tabBadge').textContent = ticketStore.length;
+      console.log(`✅ ${ticketStore.length} billets chargés depuis data.json`);
+      return true;
+    }
+  } catch (error) {
+    console.warn('Aucun data.json chargé au démarrage:', error);
+  }
+
+  try {
+    const saved = localStorage.getItem('ticketStoreData');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && Array.isArray(parsed.tickets)) {
+        ticketStore = parsed.tickets;
+        updateSummary();
+        renderTable();
+        $('tabBadge').textContent = ticketStore.length;
+        return true;
+      }
+    }
+  } catch (error) {
+    console.warn('Impossible de charger les tickets depuis le stockage local:', error);
+  }
+
+  return false;
+}
+
 function exportJSON() { if (ticketStore.length) downloadJSON(ticketStore); }
 $('jsonBtn').addEventListener('click', () => {
   if (!ticketStore.length) { alert('Générez d\'abord les tickets.'); return; }
@@ -762,16 +865,19 @@ $('importJson').addEventListener('change', e => {
 });
 
 // ── GENERATE PDF ──
-$('genBtn').addEventListener('click', async () => {
+async function runGeneration({ appendMode = false } = {}) {
   if (!imgData) return;
   let ticketCountValue = parseInt($('ticketCount').value);
   if (isNaN(ticketCountValue) || ticketCountValue < 1) ticketCountValue = 1;
-  const total = ticketCountValue; // Valeur exacte sans aucune modification
-  console.log(`Génération de ${total} tickets`); // Pour debug
+  const total = ticketCountValue;
+  console.log(`${appendMode ? 'Ajout' : 'Génération'} de ${total} billets${appendMode ? ' supplémentaires' : ''}`);
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   const pageW = 210, pageH = 297, perPage = 5;
-  const img = new Image(); img.src = imgData;
+
+  const imgQuality = parseInt($('imgQuality').value) / 100;
+  const compressedImg = await compressImage(imgData, imgQuality);
+  const img = new Image(); img.src = compressedImg;
   await new Promise(r => img.onload = r);
   const tH = pageH / perPage;
   const tW = Math.min(tH * (img.width / img.height), pageW);
@@ -790,11 +896,10 @@ $('genBtn').addEventListener('click', async () => {
   const site = $('qrSite').value.trim().replace(/\/+$/,'') || 'https://ticket-verify.vercel.app/';
   const numPos = getPosRelative($('numEl')), qrPos = getPosRelative($('qrEl'));
   const pb = $('pb'), progWrap = $('progressWrap'), progTxt = $('progTxt');
-  const btn = $('genBtn'), jsonBtn = $('jsonBtn');
+  const btn = $('genBtn'), jsonBtn = $('jsonBtn'), appendBtn = $('appendBtn');
 
-  progWrap.style.display = 'block'; btn.disabled = true; jsonBtn.disabled = true;
+  progWrap.style.display = 'block'; btn.disabled = true; jsonBtn.disabled = true; appendBtn.disabled = true;
   progTxt.textContent = 'Initialisation…';
-  ticketStore = [];
 
   const now = new Date().toISOString();
   let prixValue = parseInt($('evtPrix').value);
@@ -806,20 +911,24 @@ $('genBtn').addEventListener('click', async () => {
     notes: $('evtNotes').value
   };
 
+  const qrCache = new Map();
+  const startNumber = appendMode ? getNextTicketNumber() : 1;
+  if (!appendMode) {
+    ticketStore = [];
+  }
+
   for (let i = 0; i < total; i++) {
     if (i > 0 && i % perPage === 0) pdf.addPage();
     const pos = i % perPage, ticketY = pos * tH;
-    pdf.addImage(imgData, 'JPEG', xOff, ticketY, tW, tH);
+    pdf.addImage(compressedImg, 'JPEG', xOff, ticketY, tW, tH);
 
-    const num = String(i + 1).padStart(4, '0');
+    const num = String(startNumber + i).padStart(4, '0');
     const label = prefix + num;
     const token = makeToken();
     const qrURL = site + '?t=' + encodeURIComponent(token);
 
-    // Save to store
     ticketStore.push({ token, numero: num, label, qr_url: qrURL, statut: 'valide', ...evtData, emis_le: now });
 
-    // Number label
     const nx = xOff + numPos.xPct * tW, ny = ticketY + numPos.yPct * tH;
     const ptSz = numSz * 0.75;
     if (bgOn && numBgCol) {
@@ -830,29 +939,39 @@ $('genBtn').addEventListener('click', async () => {
     pdf.setFontSize(ptSz); pdf.setTextColor(...numCol);
     pdf.text(label, nx, ny);
 
-    // QR — contains only the short URL with token
     const szPx = Math.round(qrMm * 8);
-    const qrDataURL = await makeQRDataURL(qrURL, szPx, colorDark, colorLight);
+    let qrDataURL;
+    if (qrCache.has(qrURL)) {
+      qrDataURL = qrCache.get(qrURL);
+    } else {
+      qrDataURL = await makeQRDataURL(qrURL, szPx, colorDark, colorLight);
+      qrCache.set(qrURL, qrDataURL);
+    }
+
     const qx = xOff + qrPos.xPct * tW, qy = ticketY + qrPos.yPct * tH;
     pdf.addImage(qrDataURL, 'PNG', qx, qy, qrMm, qrMm);
 
     const pct = Math.round(((i + 1) / total) * 100);
     pb.style.width = pct + '%';
-    if (i % 5 === 0 || i === total - 1) {
-      progTxt.textContent = `${(i+1).toLocaleString('fr-FR')} / ${total.toLocaleString('fr-FR')} — ${pct}%`;
+    if (i % 10 === 0 || i === total - 1) {
+      progTxt.textContent = `${(i+1).toLocaleString('fr-FR')} / ${total.toLocaleString('fr-FR')} — ${pct}% — Compression…`;
       await new Promise(r => setTimeout(r, 0));
     }
   }
 
   pdf.save('tickets.pdf');
-  progTxt.textContent = `✓ ${total.toLocaleString('fr-FR')} tickets générés !`;
+  const lastNumber = String(startNumber + total - 1).padStart(4, '0');
+  progTxt.innerHTML = `✓ ${total.toLocaleString('fr-FR')} ${appendMode ? 'billets supplémentaires' : 'tickets'} générés ! (compression appliquée)<br><small style="color:var(--tm)">Dernier numéro : ${lastNumber}</small>`;
   pb.style.width = '100%';
-  btn.disabled = false; jsonBtn.disabled = false;
+  btn.disabled = false; jsonBtn.disabled = false; appendBtn.disabled = false;
   $('tabBadge').textContent = ticketStore.length;
   updateSummary();
-  // Auto-export JSON
-  setTimeout(() => downloadJSON(ticketStore), 600);
-});
+  renderTable();
+  persistTicketsLocally(ticketStore);
+}
+
+$('genBtn').addEventListener('click', async () => runGeneration({ appendMode: false }));
+$('appendBtn').addEventListener('click', async () => runGeneration({ appendMode: true }));
 
 // ═══════════════════════════════════
 //  TABLE RENDERING & MANAGEMENT
